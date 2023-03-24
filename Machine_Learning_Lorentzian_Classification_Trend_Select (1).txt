@@ -290,33 +290,33 @@ Label direction =
 maxBarsBackIndex = last_bar_index >= settings.maxBarsBack ? last_bar_index - settings.maxBarsBack : 0
 
 // Moving Average Settings
-group_MA = "Moving Average Settings"
-useMovingAverage = input.bool(true, "", group=group_MA, inline="movingAverage")
-movingAverageType = input.string("EMA", "Type", options=["EMA", "HMA", "SMA", "WMA", "DEMA", "TEMA", "TRIMA", "VWMA", "ZLEMA"], group=group_MA, inline="movingAverage")
-movingAverageLength = input.int(20, "", group=group_MA, inline="movingAverage")
-movingAverageResolution = input.timeframe("D", "TF", group=group_MA, inline="movingAverage")
+ma1 = input.bool(true, "Use Moving Average 1", group="Moving Average Settings", inline="movingAverage1")
+ma1Type = input.string("EMA", "Moving Average Type", options=["EMA", "HMA", "SMA", "WMA", "DEMA", "TEMA", "TRIMA", "VWMA", "ZLEMA"], group="Moving Average Settings", inline="movingAverage1")
+ma1Length = input.int(20, "Moving Average Length", group="Moving Average Settings", inline="movingAverage1")
+ma1Resolution = input.timeframe("D", "Moving Average Resolution", group="Moving Average Settings", inline="movingAverage1")
+
+ma2 = input.bool(true, "Use Moving Average 2", group="Moving Average Settings", inline="movingAverage2")
+ma2Type = input.string("EMA", "Moving Average Type", options=["EMA", "HMA", "SMA", "WMA", "DEMA", "TEMA", "TRIMA", "VWMA", "ZLEMA"], group="Moving Average Settings", inline="movingAverage2")
+ma2Length = input.int(50, "Moving Average Length", group="Moving Average Settings", inline="movingAverage2")
+ma2Resolution = input.timeframe("D", "Moving Average Resolution", group="Moving Average Settings", inline="movingAverage2")
+
 
 getMovingAverage(type, src, len) => type == "EMA" ? ta.ema(src, len) : type == "HMA" ? ta.hma(src, len) : type == "SMA" ? ta.sma(src, len) : type == "WMA" ? ta.wma(src, len) : type == "DEMA" ? 2 * ta.ema(src, len) - ta.ema(ta.ema(src, len), len) : type == "TEMA" ? 3 * ta.ema(src, len) - 3 * ta.ema(ta.ema(src, len), len) + ta.ema(ta.ema(ta.ema(src, len), len), len) : type == "TRIMA" ? (ta.sma(src, len) + ta.sma(ta.sma(src, len), len)) / 2 : type == "VWMA" ? ta.vwma(src, len) : type == "ZLEMA" ? (2 * close - ta.ema(close, 2 * len - 1)) / 2 : na
 
 // Calculate Moving Averages
-movingAverage = getMovingAverage(movingAverageType, close, movingAverageLength)
-
-// Calculate Higher Time Frame Moving Average function
-getMovingAverageHigherTF(type, src, len, res) => request.security(syminfo.tickerid, res, getMovingAverage(type, src, len))
-
-// Calculate Higher Time Frame Moving Average
-movingAverageHigherTF = getMovingAverageHigherTF(movingAverageType, close, movingAverageLength, movingAverageResolution)
+ma1Value = ma1 ? getMovingAverage(ma1Type, close, ma1Length) : na
+ma2Value = ma2 ? getMovingAverage(ma2Type, close, ma2Length) : na
 
 // Moving Average Filters
-isFilter1Uptrend = useMovingAverage ? (close > movingAverage) : true
-isFilter1Downtrend = useMovingAverage ? (close < movingAverage) : true
-isFilter2Uptrend = useMovingAverage ? (close > movingAverageHigherTF) : true
-isFilter2Downtrend = useMovingAverage ? (close < movingAverageHigherTF) : true
-
+isFilter1Uptrend = ma1 ? (close > ma1Value) : true
+isFilter1Downtrend = ma1 ? (close < ma1Value) : true
+isFilter2Uptrend = ma2 ? (close > ma2Value) : true
+isFilter2Downtrend = ma2 ? (close < ma2Value) : true
 
 // Plots
 plot(isFilter1Uptrend and isFilter2Uptrend ? close : na, color=color.green, title="Uptrend")
 plot(isFilter1Downtrend and isFilter2Downtrend ? close : na, color=color.red, title="Downtrend")
+
 
 // Nadaraya-Watson Kernel Regression Settings
 useKernelFilter = input.bool(true, "Trade with Kernel", group="Kernel Settings", inline="kernel")
