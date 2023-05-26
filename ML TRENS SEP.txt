@@ -311,6 +311,7 @@ ma2Value = request.security(syminfo.tickerid, ma2Resolution, getMovingAverage(ma
 abs(x) => x < 0 ? -x : x
 maSeparation = abs(ma1Value - ma2Value) // Calculating the difference between the two moving averages
 
+
 // Moving Average Filters
 isFilter1Uptrend = ma1 and ma2 ? (ma1Value > ma2Value and maSeparation > minMASeparation) : true
 isFilter1Downtrend = ma1 and ma2 ? (ma1Value < ma2Value and maSeparation > minMASeparation) : true
@@ -488,8 +489,9 @@ isBearish = useKernelFilter ? (useKernelSmoothing ? isBearishSmooth : isBearishR
 // ===========================
 
 // Entry Conditions
-startLongTrade = isNewBuySignal and isBullish and isFilter1Uptrend and isFilter2Uptrend
-startShortTrade = isNewSellSignal and isBearish and isFilter1Downtrend and isFilter2Downtrend
+startLongTrade = isNewBuySignal and isBullish and isFilter1Uptrend
+startShortTrade = isNewSellSignal and isBearish and isFilter1Downtrend
+
 
 // Dynamic Exit Conditions: Booleans for ML Model Position Exits based on Fractal Filters and Kernel Regression Filters
 lastSignalWasBullish = ta.barssince(startLongTrade) < ta.barssince(startShortTrade)
