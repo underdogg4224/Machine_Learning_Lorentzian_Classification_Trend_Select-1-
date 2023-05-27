@@ -286,42 +286,48 @@ Label direction =
    neutral=0
   )
 
-// Derived from General Settings
-maxBarsBackIndex = last_bar_index >= settings.maxBarsBack ? last_bar_index - settings.maxBarsBack : 0
+// Utility function to calculate absolute value
+abs(x) => x < 0 ? -x : x
 
 // Moving Average Settings
 ma1 = input.bool(true, "MA 1", group="Moving Average Settings", inline="movingAverage1")
-ma1Type = input.string("EMA", "", options=["EMA", "HMA", "SMA", "WMA", "DEMA", "TEMA", "TRIMA", "VWMA", "ZLEMA"], group="Moving Average Settings", inline="movingAverage1")
+ma1Type = input.string("EMA", "", group="Moving Average Settings", inline="movingAverage1")
 ma1Length = input.int(20, "L", group="Moving Average Settings", inline="movingAverage1")
-ma1Resolution = input.timeframe("D", "RES", group="Moving Average Settings", inline="movingAverage1")
+ma1Resolution = input.timeframe("", "RES", group="Moving Average Settings", inline="movingAverage1")
 
 ma2 = input.bool(true, "MA 2", group="Moving Average Settings", inline="movingAverage2")
-ma2Type = input.string("EMA", "", options=["EMA", "HMA", "SMA", "WMA", "DEMA", "TEMA", "TRIMA", "VWMA", "ZLEMA"], group="Moving Average Settings", inline="movingAverage2")
+ma2Type = input.string("EMA", "", group="Moving Average Settings", inline="movingAverage2")
 ma2Length = input.int(50, "L", group="Moving Average Settings", inline="movingAverage2")
-ma2Resolution = input.timeframe("D", "RES", group="Moving Average Settings", inline="movingAverage2")
+ma2Resolution = input.timeframe("", "RES", group="Moving Average Settings", inline="movingAverage2")
 
-minMASeparation = input.int(5, "Minimum MA Separation", group="Moving Average Settings")
+// Minimum MA Separation Percentage
+minMASeparationPercent = input.float(1.0, "Minimum MA Separation (%)", group="Moving Average Settings") / 100
 
 getMovingAverage(type, src, len) => type == "EMA" ? ta.ema(src, len) : type == "HMA" ? ta.hma(src, len) : type == "SMA" ? ta.sma(src, len) : type == "WMA" ? ta.wma(src, len) : type == "DEMA" ? 2 * ta.ema(src, len) - ta.ema(ta.ema(src, len), len) : type == "TEMA" ? 3 * ta.ema(src, len) - 3 * ta.ema(ta.ema(src, len), len) + ta.ema(ta.ema(ta.ema(src, len), len), len) : type == "TRIMA" ? (ta.sma(src, len) + ta.sma(ta.sma(src, len), len)) / 2 : type == "VWMA" ? ta.vwma(src, len) : type == "ZLEMA" ? (2 * src - ta.ema(src, 2 * len - 1)) / 2 : na
 
-// Calculate Moving Averages
-ma1Value = request.security(syminfo.tickerid, ma1Resolution, getMovingAverage(ma1Type, close, ma1Length))
-ma2Value = request.security(syminfo.tickerid, ma2Resolution, getMovingAverage(ma2Type, close, ma2Length))
+ln(x) => (x - 1) / (x + 1) / 2 + 1 / 4 * pow((x - 1) / (x + 1), 2) / 3 + 1 / 6 * pow((x - 1) / (x + 1), 3)
+log(x) => ln(x) / ln(10)
 
-abs(x) => x < 0 ? -x : x
-maSeparation = abs(ma1Value - ma2Value) // Calculating the difference between the two moving averages
+// Calculating the logarithmic returns
+logReturn = na(close[1]) ? na : log(close / close[1])
 
+// Calculate Moving Averages on logReturn
+ma1Value = request.security(syminfo.tickerid, ma1Resolution, getMovingAverage(ma1Type, logReturn, ma1Length))
+ma2Value = request.security(syminfo.tickerid, ma2Resolution, getMovingAverage(ma2Type, logReturn, ma2Length))
+
+// Calculating minimum separation in price terms
+minMASeparation = minMASeparationPercent * close
+
+// Calculate absolute difference
+absDiff = abs(ma1Value - ma2Value)
 
 // Moving Average Filters
-isFilter1Uptrend = ma1 and ma2 ? (ma1Value > ma2Value and maSeparation > minMASeparation) : true
-isFilter1Downtrend = ma1 and ma2 ? (ma1Value < ma2Value and maSeparation > minMASeparation) : true
-isFilter2Uptrend = isFilter1Uptrend
-isFilter2Downtrend = isFilter1Downtrend
+isFilter1Uptrend = ma1 and ma2 ? (ma1Value > ma2Value and absDiff > minMASeparation) : true
+isFilter1Downtrend = ma1 and ma2 ? (ma1Value < ma2Value and absDiff > minMASeparation) : true
 
 // Plotting
 plot(isFilter1Uptrend ? close : na, color=color.green, title="Uptrend")
 plot(isFilter1Downtrend ? close : na, color=color.red, title="Downtrend")
-
 
 
 
